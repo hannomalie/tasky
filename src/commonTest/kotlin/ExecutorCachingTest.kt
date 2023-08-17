@@ -1,6 +1,4 @@
 import okio.FileSystem
-import okio.Path.Companion.toPath
-import platform.posix.creat
 import platform.posix.sleep
 import kotlin.native.concurrent.AtomicInt
 import kotlin.random.Random
@@ -19,7 +17,7 @@ class ExecutorCachingTest {
         tasks {
             val task = object : TaskDefinition("someTask") {
                 var cacheableProperty = "foo"
-                val property by Cachable(::cacheableProperty)
+                val property by Cacheable(::cacheableProperty)
 
                 override fun execute() {
                     counter.addAndGet(1)
@@ -32,6 +30,45 @@ class ExecutorCachingTest {
 
             val planResult = assertIs<TasksToBeExecuted>(executor.plan("someTask", this))
             assertContentEquals(
+                listOf(
+                    CachedTask(task, listOf(task::property.name))
+                ),
+                planResult.cachedTasks,
+                "Expected exactly one task to be cached after ran once"
+            )
+
+            assertIs<TasksToBeExecuted>(executor.execute("someTask", this))
+            assertEquals(1, counter.value, "Expected counter to be incremented exactly one time")
+        }
+    }
+
+    @Test
+    fun `tasks are cached with file cache`() {
+
+        val file = TestDirectory.root / (Random.nextInt().toString() + ".cache.json")
+        FileSystem.SYSTEM.openReadWrite(file, true).close()
+
+        val cache = FileBasedCache(File(file.toString()))
+
+        val executor = Executor(cache)
+        val counter = AtomicInt(0)
+
+        tasks {
+            val task = object : TaskDefinition("someTask") {
+                var cacheableProperty = "foo"
+                val property by Cacheable(::cacheableProperty)
+
+                override fun execute() {
+                    counter.addAndGet(1)
+                }
+            }
+            register(task)
+
+            assertIs<TasksToBeExecuted>(executor.execute("someTask", this))
+            assertEquals(1, executor.cache.size, "Expected the executor to cache results of single task: $cache")
+
+            val planResult = assertIs<TasksToBeExecuted>(executor.plan("someTask", this))
+            assertContentEquals(
                 listOf(CachedTask(task, listOf(task::property.name))),
                 planResult.cachedTasks,
                 "Expected exactly one task to be cached after ran once"
@@ -39,7 +76,50 @@ class ExecutorCachingTest {
 
             assertIs<TasksToBeExecuted>(executor.execute("someTask", this))
             assertEquals(1, counter.value, "Expected counter to be incremented exactly one time")
+        }
+    }
 
+    @Test
+    fun `tasks are cached when property reference is used`() {
+        val executor = Executor()
+        val counter = AtomicInt(0)
+
+        tasks {
+            val dependency = object : TaskDefinition("dependency") {
+                val cacheableProperty = "someString"
+                val property by Cacheable(::cacheableProperty)
+
+                override fun execute() {
+                    counter.addAndGet(1)
+                }
+            }
+            val task = object : TaskDefinition("someTask") {
+                val property by Cacheable(referenceTo(dependency, dependency::cacheableProperty))
+
+                override fun execute() {
+                    counter.addAndGet(1)
+                }
+            }
+            register(task)
+
+            val executionResult = assertIs<TasksToBeExecuted>(executor.execute("someTask", this))
+            assertEquals(2, counter.value, "Expected counter to be incremented exactly one time per task")
+            assertContentEquals(
+                listOf(dependency, task),
+                executionResult.tasks,
+                "Expected both tasks to be run"
+            )
+            assertEquals(2, executor.cache.size, "Expected the executor to cache results of the two tasks")
+
+            val planResult = assertIs<TasksToBeExecuted>(executor.plan("someTask", this))
+            assertContentEquals(
+                listOf(CachedTask(dependency, listOf(dependency::property.name)), CachedTask(task, listOf(task::property.name))),
+                planResult.cachedTasks,
+                "Expected both tasks to be cached after ran once"
+            )
+
+            assertIs<TasksToBeExecuted>(executor.execute("someTask", this))
+            assertEquals(2, counter.value, "Expected counter to be incremented exactly one time per task")
         }
     }
 
@@ -50,12 +130,11 @@ class ExecutorCachingTest {
 
         tasks {
             val filePath = TestDirectory.root / "${Random.nextInt()}.txt"
-            val fileCreationResult = creat(filePath.toString(), 666.toUInt())
-            assertEquals(3, fileCreationResult)
+            FileSystem.SYSTEM.openReadWrite(filePath, true).close()
 
             val task = object : TaskDefinition("someTask") {
                 var cacheableProperty = File(filePath.toString())
-                val property by Cachable(::cacheableProperty)
+                val property by Cacheable(::cacheableProperty)
 
                 override fun execute() {
                     counter.addAndGet(1)
@@ -89,7 +168,7 @@ class ExecutorCachingTest {
 
             val task = object : TaskDefinition("someTask") {
                 var cacheableProperty = File(filePath.toString())
-                val property by Cachable(::cacheableProperty)
+                val property by Cacheable(::cacheableProperty)
 
                 override fun execute() {
                     counter.addAndGet(1)

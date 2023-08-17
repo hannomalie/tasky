@@ -1,5 +1,6 @@
 plugins {
     kotlin("multiplatform") version "1.9.0"
+    kotlin("plugin.serialization") version "1.9.0"
 }
 
 group = "org.example"
@@ -30,6 +31,7 @@ kotlin {
         val commonMain by getting {
             dependencies {
                 implementation("com.squareup.okio:okio:3.5.0")
+                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0-RC")
             }
         }
 

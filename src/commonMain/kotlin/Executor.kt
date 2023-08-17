@@ -1,66 +1,37 @@
-import kotlin.collections.List
-import kotlin.collections.firstOrNull
-import kotlin.collections.forEach
-import kotlin.collections.isNotEmpty
-import kotlin.collections.listOf
-import kotlin.collections.map
-import kotlin.collections.minus
-import kotlin.collections.mutableListOf
-import kotlin.collections.mutableMapOf
-import kotlin.collections.plus
-import kotlin.collections.set
-import kotlin.collections.toSet
-import kotlin.reflect.KProperty1
-
-class Executor {
-    internal val cache = mutableMapOf<TaskProperty, Any?>()
-
+class Executor(internal val cache: Cache = InMemoryCache()) {
     fun plan(taskName: String, taskContainer: TaskContainer): Result {
+        cache.beforePlan(taskContainer)
+
         val taskToExecute = taskContainer.tasks.firstOrNull {
             it.name == taskName
         } ?: return NoTasksMatching(taskName)
 
         return taskContainer.run {
-            val tasksToBeExecuted = taskToExecute.requirements + listOf(taskToExecute) + taskToExecute.introductions
+            val tasksToBeExecuted = traverse(taskToExecute)
 
-            val cachedTasks = mutableListOf<CachedTask>()
-            tasksToBeExecuted.forEach { taskDefinition ->
+            val cachedTasks = determineCachedTasks(tasksToBeExecuted)
 
-                taskDefinition.cached.takeIf { it.isNotEmpty() }?.let { cacheCandidates ->
-                    val changedCachedProperties = mutableListOf<KProperty1<TaskDefinition, *>>()
+            val nonCachedTasksToBeExecuted = tasksToBeExecuted - cachedTasks.map { it.taskDefinition }.toSet()
 
-                    cacheCandidates.forEach { property ->
+            TasksToBeExecuted(
+                nonCachedTasksToBeExecuted,
+                cachedTasks,
+            )
+        }
+    }
 
-                        // TODO: More clever comparison for different data types here
-                        val taskProperty = TaskProperty(taskDefinition, property)
-                        val currentPropertyValue = property.get(taskDefinition)
-                        val alreadyCached = cache.containsKey(taskProperty)
-                        val notYetCached = !alreadyCached
+    private fun determineCachedTasks(tasksToBeExecuted: List<TaskDefinition>): List<CachedTask> = buildList {
+        tasksToBeExecuted.forEach { taskDefinition ->
 
-                        val propertyHasChanged = if(alreadyCached) {
-                            if(currentPropertyValue is File) {
-                                val lastModifiedTimeOrNull = getLastModifiedTime(currentPropertyValue.path)
-                                if(lastModifiedTimeOrNull != null) {
-                                    lastModifiedTimeOrNull > (cache[taskProperty] as Long) // TODO: This might fail
-                                } else false
-                            } else {
-                                (currentPropertyValue != cache[taskProperty])
-                            }
-                        } else false
+            taskDefinition.cached.takeIf { it.isNotEmpty() }?.let { cacheCandidates ->
+                val changedCachedProperties =
+                    cache.getChangedCacheableProperties(cacheCandidates.keys.toList(), taskDefinition)
 
-                        if(notYetCached || propertyHasChanged) {
-                            changedCachedProperties.add(property)
-                        }
-                    }
-
-                    val cachedPropertiesChanged = changedCachedProperties.isNotEmpty()
-                    if(!cachedPropertiesChanged) {
-                        cachedTasks.add(CachedTask(taskDefinition, cacheCandidates.map { it.name }))
-                    }
+                val cachedPropertiesChanged = changedCachedProperties.isNotEmpty()
+                if (!cachedPropertiesChanged) {
+                    add(CachedTask(taskDefinition, cacheCandidates.map { it.value }))
                 }
             }
-
-            TasksToBeExecuted((tasksToBeExecuted - cachedTasks.map { it.taskDefinition }.toSet()), cachedTasks)
         }
     }
 
@@ -69,19 +40,12 @@ class Executor {
             is NoTasksMatching -> { }
             is TasksToBeExecuted -> tasks.forEach { taskDefinition ->
                 taskDefinition.execute()
-                taskDefinition.cached.forEach { property ->
-                    val newPropertyValue = property.get(taskDefinition)
-
-                    if (newPropertyValue is File) {
-                        getLastModifiedTime(newPropertyValue.path)?.let {
-                            cache[TaskProperty(taskDefinition, property)] = it
-                        }
-                    } else {
-                        cache[TaskProperty(taskDefinition, property)] = newPropertyValue
-                    }
+                taskDefinition.cached.forEach { cacheable ->
+                    cache.putPropertyValue(taskDefinition.name, cacheable.key.delegateTo)
                 }
             }
         }
+        cache.afterExecution()
     }
 }
 
@@ -99,4 +63,3 @@ data class CachedTask(val taskDefinition: TaskDefinition, val reasons: List<Stri
         }
     }
 }
-data class TaskProperty(val taskDefinition: TaskDefinition, val property: KProperty1<TaskDefinition, *>)
