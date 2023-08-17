@@ -15,7 +15,7 @@ class ExecutorCachingTest {
         val counter = AtomicInt(0)
 
         tasks {
-            val task = object : TaskDefinition("someTask") {
+            val task = object : Task("someTask") {
                 var cacheableProperty = "foo"
                 val property by Cacheable(::cacheableProperty)
 
@@ -54,7 +54,7 @@ class ExecutorCachingTest {
         val counter = AtomicInt(0)
 
         tasks {
-            val task = object : TaskDefinition("someTask") {
+            val task = object : Task("someTask") {
                 var cacheableProperty = "foo"
                 val property by Cacheable(::cacheableProperty)
 
@@ -85,7 +85,7 @@ class ExecutorCachingTest {
         val counter = AtomicInt(0)
 
         tasks {
-            val dependency = object : TaskDefinition("dependency") {
+            val dependency = object : Task("dependency") {
                 val cacheableProperty = "someString"
                 val property by Cacheable(::cacheableProperty)
 
@@ -93,7 +93,7 @@ class ExecutorCachingTest {
                     counter.addAndGet(1)
                 }
             }
-            val task = object : TaskDefinition("someTask") {
+            val task = object : Task("someTask") {
                 val property by Cacheable(referenceTo(dependency, dependency::cacheableProperty))
 
                 override fun execute() {
@@ -132,7 +132,7 @@ class ExecutorCachingTest {
             val filePath = TestDirectory.root / "${Random.nextInt()}.txt"
             FileSystem.SYSTEM.openReadWrite(filePath, true).close()
 
-            val task = object : TaskDefinition("someTask") {
+            val task = object : Task("someTask") {
                 var cacheableProperty = File(filePath.toString())
                 val property by Cacheable(::cacheableProperty)
 
@@ -166,7 +166,7 @@ class ExecutorCachingTest {
             val filePath = TestDirectory.root / "${Random.nextInt()}.txt"
             FileSystem.SYSTEM.openReadWrite(filePath, mustCreate = true).close()
 
-            val task = object : TaskDefinition("someTask") {
+            val task = object : Task("someTask") {
                 var cacheableProperty = File(filePath.toString())
                 val property by Cacheable(::cacheableProperty)
 

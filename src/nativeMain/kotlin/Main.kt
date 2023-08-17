@@ -1,7 +1,7 @@
 fun main(args: Array<String>) {
     Executor().apply {
         TaskContainer().apply {
-            val taskOfInterest = object: TaskDefinition("taskOfInterest") {
+            val taskOfInterest = object: Task("taskOfInterest") {
                 val property = "myProperty"
                 override fun execute() { println("Executing $name") }
             }.apply {
@@ -9,7 +9,7 @@ fun main(args: Array<String>) {
             }
 
             repeat(5) {
-                val dependency = object: TaskDefinition("dependency$it") {
+                val dependency = object: Task("dependency$it") {
                     override fun execute() { println("Executing $name") }
                 }.apply {
                     register(this)
@@ -19,7 +19,7 @@ fun main(args: Array<String>) {
             }
 
             repeat(5) {
-                val followUp = object: TaskDefinition("followUp$it") {
+                val followUp = object: Task("followUp$it") {
                     override fun execute() { println("Executing $name") }
                 }.apply {
                     register(this)
@@ -28,7 +28,7 @@ fun main(args: Array<String>) {
                 taskOfInterest introduces followUp
             }
             val followUp3 = tasks.first { it.name == "followUp3" }
-            val followUp3Dependency = object: TaskDefinition("followUp3Dependency") {
+            val followUp3Dependency = object: Task("followUp3Dependency") {
                 override fun execute() { println("Executing $name") }
             }.apply {
                 register(this)

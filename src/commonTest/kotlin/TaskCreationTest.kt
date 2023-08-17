@@ -49,7 +49,7 @@ class TaskCreationTest {
         }
     }
 
-    private fun TaskContainer.assertTaskExists(name: String): TaskDefinition {
+    private fun TaskContainer.assertTaskExists(name: String): Task {
         val task = assertNotNull(getOrNull(name))
         assertEquals(name, task.name)
         return task

@@ -42,12 +42,12 @@ If you want to actually implement something real, you would implement a Task cla
 ### Usual tasks
 
 ```kotlin
-val childTaskDefinition = object : TaskDefinition("myTask") {
+val childTask = object : Task("myTask") {
     override fun execute() {
         println("$name executing...")
     }
 }
-taskContainer.register(childTaskDefinition)
+taskContainer.register(childTask)
 
 Executor().execute("myTask", taskContainer)
 ```
@@ -66,27 +66,27 @@ at this example:
 
 ```kotlin
 TaskContainer().apply {
-    val childTaskDefinition = object : TaskDefinition("child") {
+    val childTask = object : Task("child") {
         var property = "someProperty" // we define some property
         override fun execute() {
             property = "somePropertyChanged" // which is changed when the task executes
         }
     }
-    register(childTaskDefinition)
+    register(childTask)
 
-    val parentTaskDefinition = object : TaskDefinition("parent") {
+    val parentTask = object : Task("parent") {
         // this is an implicit task dependency
         // this property (a task input) is derived from a foreign property (a task output) 
         // the referenceTo method is available on the task container, which is responsible
         // for the relationships between tasks, not the task definitions themselves
-        val property by referenceTo(childTaskDefinition, childTaskDefinition::property)
+        val property by referenceTo(childTask, childTask::property)
 
         override fun execute() {
             // child task is a task dependency, so it's executed before parent, so the linked property will reflect the change
             assertEquals("somePropertyChanged", property)
         }
     }
-    register(parentTaskDefinition)
+    register(parentTask)
 }
 ```
 
@@ -99,7 +99,7 @@ to model inputs and outputs clearly and (automatically) enable caching of your t
 
 ```kotlin
 TaskContainer().apply {
-    val task = object : TaskDefinition("someTask") {
+    val task = object : Task("someTask") {
         var cacheableProperty = File(filePath.toString())
         val property by Cacheable(::cacheableProperty)
 
@@ -120,7 +120,7 @@ depend on the task and additionally execute the task only when those outputs als
 
 ```kotlin
 TaskContainer().apply {
-    val dependency = object : TaskDefinition("dependency") {
+    val dependency = object : Task("dependency") {
         val cacheableProperty = "someString"
         val property by Cacheable(::cacheableProperty)
 
@@ -128,7 +128,7 @@ TaskContainer().apply {
             println("Executing $name")
         }
     }
-    val task = object : TaskDefinition("someTask") {
+    val task = object : Task("someTask") {
         val property by Cacheable(referenceTo(dependency, dependency::cacheableProperty))
 
         override fun execute() {

@@ -11,7 +11,7 @@ class Executor(internal val cache: Cache = InMemoryCache()) {
 
             val cachedTasks = determineCachedTasks(tasksToBeExecuted)
 
-            val nonCachedTasksToBeExecuted = tasksToBeExecuted - cachedTasks.map { it.taskDefinition }.toSet()
+            val nonCachedTasksToBeExecuted = tasksToBeExecuted - cachedTasks.map { it.task }.toSet()
 
             TasksToBeExecuted(
                 nonCachedTasksToBeExecuted,
@@ -20,16 +20,16 @@ class Executor(internal val cache: Cache = InMemoryCache()) {
         }
     }
 
-    private fun determineCachedTasks(tasksToBeExecuted: List<TaskDefinition>): List<CachedTask> = buildList {
-        tasksToBeExecuted.forEach { taskDefinition ->
+    private fun determineCachedTasks(tasksToBeExecuted: List<Task>): List<CachedTask> = buildList {
+        tasksToBeExecuted.forEach { task ->
 
-            taskDefinition.cached.takeIf { it.isNotEmpty() }?.let { cacheCandidates ->
+            task.cached.takeIf { it.isNotEmpty() }?.let { cacheCandidates ->
                 val changedCachedProperties =
-                    cache.getChangedCacheableProperties(cacheCandidates.keys.toList(), taskDefinition)
+                    cache.getChangedCacheableProperties(cacheCandidates.keys.toList(), task)
 
                 val cachedPropertiesChanged = changedCachedProperties.isNotEmpty()
                 if (!cachedPropertiesChanged) {
-                    add(CachedTask(taskDefinition, cacheCandidates.map { it.value }))
+                    add(CachedTask(task, cacheCandidates.map { it.value }))
                 }
             }
         }
@@ -38,10 +38,10 @@ class Executor(internal val cache: Cache = InMemoryCache()) {
     fun execute(taskName: String, taskContainer: TaskContainer): Result = plan(taskName, taskContainer).apply {
         when(this) {
             is NoTasksMatching -> { }
-            is TasksToBeExecuted -> tasks.forEach { taskDefinition ->
-                taskDefinition.execute()
-                taskDefinition.cached.forEach { cacheable ->
-                    cache.putPropertyValue(taskDefinition.name, cacheable.key.delegateTo)
+            is TasksToBeExecuted -> tasks.forEach { task ->
+                task.execute()
+                task.cached.forEach { cacheable ->
+                    cache.putPropertyValue(task.name, cacheable.key.delegateTo)
                 }
             }
         }
@@ -52,11 +52,11 @@ class Executor(internal val cache: Cache = InMemoryCache()) {
 sealed interface Result
 data class NoTasksMatching(val name: String): Result
 data class TasksToBeExecuted(
-    val tasks: List<TaskDefinition>,
+    val tasks: List<Task>,
     val cachedTasks: List<CachedTask>,
 ): Result
 
-data class CachedTask(val taskDefinition: TaskDefinition, val reasons: List<String>) {
+data class CachedTask(val task: Task, val reasons: List<String>) {
     init {
         require(reasons.isNotEmpty()) {
             "Cannot cache task if there is no reason to, don't pass an empty reasons list"

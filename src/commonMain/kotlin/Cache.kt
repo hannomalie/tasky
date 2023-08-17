@@ -5,15 +5,15 @@ sealed interface Cache {
     val size: Int
 
     fun containsKey(taskName: String, key: KProperty0<Any?>): Boolean
-    operator fun <T> get(task: TaskDefinition, key: KProperty0<T>): Any?
+    operator fun <T> get(task: Task, key: KProperty0<T>): Any?
     fun <T> putPropertyValue(taskName: String, key: KProperty0<T>)
 
-    fun propertyHasChanged(cacheable: Cacheable, taskDefinition: TaskDefinition): Boolean {
-        val alreadyCached = containsKey(taskDefinition.name, cacheable.delegateTo)
+    fun propertyHasChanged(cacheable: Cacheable, task: Task): Boolean {
+        val alreadyCached = containsKey(task.name, cacheable.delegateTo)
         val notYetCached = !alreadyCached
 
         val propertyHasChanged = if (alreadyCached) {
-            cacheable.delegateTo.getCacheEntry() != this[taskDefinition, cacheable.delegateTo]
+            cacheable.delegateTo.getCacheEntry() != this[task, cacheable.delegateTo]
         } else false
 
         return notYetCached || propertyHasChanged
@@ -21,12 +21,12 @@ sealed interface Cache {
 
     fun getChangedCacheableProperties(
         cacheCandidates: List<Cacheable>,
-        taskDefinition: TaskDefinition
+        task: Task
     ): MutableList<KProperty0<*>> {
         val changedCachedProperties = mutableListOf<KProperty0<*>>()
 
         cacheCandidates.forEach { cacheable ->
-            val propertyHasChanged = propertyHasChanged(cacheable, taskDefinition)
+            val propertyHasChanged = propertyHasChanged(cacheable, task)
             if (propertyHasChanged) {
                 changedCachedProperties.add(cacheable.delegateTo)
             }
@@ -49,7 +49,7 @@ class InMemoryCache: Cache {
         it.key.first == taskName && it.key.second == key
     }
 
-    override operator fun <T> get(task: TaskDefinition, key: KProperty0<T>): Any? = underlying.entries.first {
+    override operator fun <T> get(task: Task, key: KProperty0<T>): Any? = underlying.entries.first {
         it.key.first == task.name && it.key.second == key
     }.value
 

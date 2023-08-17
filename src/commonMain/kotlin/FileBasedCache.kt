@@ -14,7 +14,7 @@ class FileBasedCache(private val file: File, private val format: StringFormat = 
     override val size: Int get() = underlying.size
     override fun containsKey(taskName: String, key: KProperty0<Any?>) = underlying.containsKey(taskName, key)
 
-    override operator fun <T> get(task: TaskDefinition, key: KProperty0<T>) = underlying[task, key]
+    override operator fun <T> get(task: Task, key: KProperty0<T>) = underlying[task, key]
 
     override fun <T> putPropertyValue(taskName: String, key: KProperty0<T>) = underlying.putPropertyValue(taskName, key)
 

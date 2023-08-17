@@ -32,22 +32,22 @@ class ExecutorTest {
     @Test
     fun `custom task gets executed`() {
         tasks {
-            val childTaskDefinition = object : TaskDefinition("child") {
+            val childTask = object : Task("child") {
                 var property = "someProperty"
                 override fun execute() {
                     property = "somePropertyChanged"
                 }
             }
-            register(childTaskDefinition)
+            register(childTask)
 
-            val parentTaskDefinition = object : TaskDefinition("parent") {
-                val property by referenceTo(childTaskDefinition, childTaskDefinition::property)
+            val parentTask = object : Task("parent") {
+                val property by referenceTo(childTask, childTask::property)
 
                 override fun execute() {
                     assertEquals("somePropertyChanged", property)
                 }
             }
-            register(parentTaskDefinition)
+            register(parentTask)
 
             Executor().execute("parent", this)
         }

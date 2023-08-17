@@ -15,7 +15,7 @@ class FileBasedCacheTest {
         val cache = FileBasedCache(File(cacheFile.toString()))
 
         TaskContainer().apply {
-            val task = object: TaskDefinition("myTask") {
+            val task = object: Task("myTask") {
                 var cacheableProperty = "foo"
                 val property by Cacheable(::cacheableProperty)
             }
