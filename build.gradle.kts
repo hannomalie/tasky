@@ -3,11 +3,11 @@ plugins {
     kotlin("plugin.serialization") version "1.9.0"
 }
 
-group = "org.example"
-version = "1.0-SNAPSHOT"
-
-repositories {
-    mavenCentral()
+allprojects {
+    group = "de.hanno.tasky"
+    repositories {
+        mavenCentral()
+    }
 }
 
 kotlin {
@@ -40,8 +40,11 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
             }
         }
+    }
+}
 
-        val nativeMain by getting
-        val nativeTest by getting
+tasks.named("nativeTest") {
+    doFirst {
+        buildDir.resolve("test").mkdirs()
     }
 }

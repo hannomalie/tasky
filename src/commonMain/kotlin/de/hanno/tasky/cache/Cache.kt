@@ -1,3 +1,7 @@
+package de.hanno.tasky.cache
+
+import de.hanno.tasky.task.Task
+import de.hanno.tasky.task.TaskContainer
 import kotlin.reflect.KProperty0
 
 sealed interface Cache {

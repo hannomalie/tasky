@@ -1,3 +1,10 @@
+package de.hanno.tasky.cache
+
+import de.hanno.tasky.cache.Cacheable
+import de.hanno.tasky.cache.FileBasedCache
+import de.hanno.tasky.task.File
+import de.hanno.tasky.task.Task
+import de.hanno.tasky.task.TaskContainer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import okio.FileSystem
@@ -33,7 +40,7 @@ class FileBasedCacheTest {
             }
             assertEquals(
                 listOf(
-                    Entry("myTask", "cacheableProperty", mapOf("type" to "StringCacheEntry", "value" to "12345"))
+                    Entry("myTask", "cacheableProperty", mapOf("type" to StringCacheEntry::class.qualifiedName!!, "value" to "12345"))
                 ),
                 Json.decodeFromString(fileContent)
             )

@@ -1,3 +1,10 @@
+package de.hanno.tasky
+
+import de.hanno.tasky.cache.Cache
+import de.hanno.tasky.cache.InMemoryCache
+import de.hanno.tasky.task.Task
+import de.hanno.tasky.task.TaskContainer
+
 class Executor(internal val cache: Cache = InMemoryCache()) {
     fun plan(taskName: String, taskContainer: TaskContainer): Result {
         cache.beforePlan(taskContainer)

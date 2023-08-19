@@ -1,3 +1,6 @@
+package de.hanno.tasky.cache
+
+import de.hanno.tasky.cache.getHashForFile
 import kotlinx.cinterop.ExperimentalForeignApi
 import kotlinx.cinterop.memScoped
 import kotlinx.datetime.Clock

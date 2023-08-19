@@ -1,3 +1,8 @@
+package de.hanno.tasky.cache
+
+import de.hanno.tasky.task.File
+import de.hanno.tasky.task.Task
+import de.hanno.tasky.task.TaskContainer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.StringFormat
 import kotlinx.serialization.decodeFromString

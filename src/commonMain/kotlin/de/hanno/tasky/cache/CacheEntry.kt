@@ -1,3 +1,6 @@
+package de.hanno.tasky.cache
+
+import de.hanno.tasky.task.File
 import kotlinx.serialization.Serializable
 import kotlin.reflect.KProperty0
 

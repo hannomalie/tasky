@@ -1,3 +1,8 @@
+import de.hanno.tasky.Executor
+import de.hanno.tasky.TasksToBeExecuted
+import de.hanno.tasky.task.Task
+import de.hanno.tasky.task.register
+import de.hanno.tasky.task.tasks
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals

@@ -1,3 +1,6 @@
+package de.hanno.tasky.task
+
+import de.hanno.tasky.cache.Cacheable
 import kotlin.reflect.KProperty
 import kotlin.reflect.KProperty0
 

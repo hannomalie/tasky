@@ -1,3 +1,6 @@
+package de.hanno.tasky.task
+
+import de.hanno.tasky.cache.Cacheable
 import kotlinx.serialization.Serializable
 
 data class Requirement(val task: Task, val requiredTask: Task)
