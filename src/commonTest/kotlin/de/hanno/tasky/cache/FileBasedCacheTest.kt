@@ -1,13 +1,11 @@
 package de.hanno.tasky.cache
 
-import de.hanno.tasky.cache.Cacheable
-import de.hanno.tasky.cache.FileBasedCache
+import de.hanno.tasky.fileSystem
 import de.hanno.tasky.task.File
 import de.hanno.tasky.task.Task
 import de.hanno.tasky.task.TaskContainer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import okio.FileSystem
 import kotlin.random.Random
 import kotlin.reflect.KMutableProperty0
 import kotlin.test.Test
@@ -18,7 +16,7 @@ class FileBasedCacheTest {
     @Test
     fun `fileCache is written on afterExecution`() {
         val cacheFile = TestDirectory.root / (Random.nextInt().toString())
-        FileSystem.SYSTEM.openReadWrite(cacheFile, true).close()
+        fileSystem.openReadWrite(cacheFile, true).close()
         val cache = FileBasedCache(File(cacheFile.toString()))
 
         TaskContainer().apply {
@@ -35,12 +33,12 @@ class FileBasedCacheTest {
             )
             cache.afterExecution()
 
-            val fileContent = FileSystem.SYSTEM.read(cacheFile) {
+            val fileContent = fileSystem.read(cacheFile) {
                 readByteString().utf8()
             }
             assertEquals(
                 listOf(
-                    Entry("myTask", "cacheableProperty", mapOf("type" to StringCacheEntry::class.qualifiedName!!, "value" to "12345"))
+                    FooEntry("myTask", "cacheableProperty", mapOf("type" to StringCacheEntry::class.qualifiedName!!, "value" to "12345"))
                 ),
                 Json.decodeFromString(fileContent)
             )
@@ -49,4 +47,4 @@ class FileBasedCacheTest {
 }
 
 @Serializable
-data class Entry(val taskName: String, val propertyName: String, val value: Map<String, String>)
+data class FooEntry(val taskName: String, val propertyName: String, val value: Map<String, String>)

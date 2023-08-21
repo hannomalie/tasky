@@ -1,5 +1,6 @@
 package de.hanno.tasky.cache
 
+import de.hanno.tasky.fileSystem
 import de.hanno.tasky.task.File
 import de.hanno.tasky.task.Task
 import de.hanno.tasky.task.TaskContainer
@@ -24,7 +25,7 @@ class FileBasedCache(private val file: File, private val format: StringFormat = 
     override fun <T> putPropertyValue(taskName: String, key: KProperty0<T>) = underlying.putPropertyValue(taskName, key)
 
     private fun load(taskContainer: TaskContainer) {
-        val string: String = FileSystem.SYSTEM.read(file.path.toPath()) {
+        val string: String = fileSystem.read(file.path.toPath()) {
             readByteArray().decodeToString()
         }
         if(string.isNotBlank()) {
@@ -44,7 +45,7 @@ class FileBasedCache(private val file: File, private val format: StringFormat = 
             Entry(it.key.first, it.key.second.name, it.value)
         }
         val string = format.encodeToString(serializable)
-        FileSystem.SYSTEM.write(file.path.toPath()) {
+        fileSystem.write(file.path.toPath()) {
             write(string.encodeToByteArray())
         }
     }
@@ -58,4 +59,4 @@ class FileBasedCache(private val file: File, private val format: StringFormat = 
 }
 
 @Serializable
-private data class Entry(val taskName: String, val propertyName: String, val value: CacheEntry?)
+data class Entry(val taskName: String, val propertyName: String, val value: CacheEntry?)

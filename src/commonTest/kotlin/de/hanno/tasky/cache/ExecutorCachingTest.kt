@@ -1,15 +1,15 @@
 package de.hanno.tasky.cache
 
+import AtomicInt
 import TestDirectory
 import de.hanno.tasky.CachedTask
 import de.hanno.tasky.Executor
 import de.hanno.tasky.TasksToBeExecuted
+import de.hanno.tasky.fileSystem
 import de.hanno.tasky.task.File
 import de.hanno.tasky.task.Task
 import de.hanno.tasky.task.tasks
-import okio.FileSystem
-import platform.posix.sleep
-import kotlin.native.concurrent.AtomicInt
+import sleep
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
@@ -47,7 +47,7 @@ class ExecutorCachingTest {
             )
 
             assertIs<TasksToBeExecuted>(executor.execute("someTask", this))
-            assertEquals(1, counter.value, "Expected counter to be incremented exactly one time")
+            assertEquals(1, counter.addAndGet(0), "Expected counter to be incremented exactly one time")
         }
     }
 
@@ -55,7 +55,7 @@ class ExecutorCachingTest {
     fun `tasks are cached with file cache`() {
 
         val file = TestDirectory.root / (Random.nextInt().toString() + ".cache.json")
-        FileSystem.SYSTEM.openReadWrite(file, true).close()
+        fileSystem.openReadWrite(file, true).close()
 
         val cache = FileBasedCache(File(file.toString()))
 
@@ -84,7 +84,7 @@ class ExecutorCachingTest {
             )
 
             assertIs<TasksToBeExecuted>(executor.execute("someTask", this))
-            assertEquals(1, counter.value, "Expected counter to be incremented exactly one time")
+            assertEquals(1, counter.addAndGet(0), "Expected counter to be incremented exactly one time")
         }
     }
 
@@ -112,7 +112,7 @@ class ExecutorCachingTest {
             register(task)
 
             val executionResult = assertIs<TasksToBeExecuted>(executor.execute("someTask", this))
-            assertEquals(2, counter.value, "Expected counter to be incremented exactly one time per task")
+            assertEquals(2, counter.addAndGet(0), "Expected counter to be incremented exactly one time per task")
             assertContentEquals(
                 listOf(dependency, task),
                 executionResult.tasks,
@@ -131,7 +131,7 @@ class ExecutorCachingTest {
             )
 
             assertIs<TasksToBeExecuted>(executor.execute("someTask", this))
-            assertEquals(2, counter.value, "Expected counter to be incremented exactly one time per task")
+            assertEquals(2, counter.addAndGet(0), "Expected counter to be incremented exactly one time per task")
         }
     }
 
@@ -142,7 +142,7 @@ class ExecutorCachingTest {
 
         tasks {
             val filePath = TestDirectory.root / "${Random.nextInt()}.txt"
-            FileSystem.SYSTEM.openReadWrite(filePath, true).close()
+            fileSystem.openReadWrite(filePath, true).close()
 
             val task = object : Task("someTask") {
                 var cacheableProperty = File(filePath.toString())
@@ -165,7 +165,7 @@ class ExecutorCachingTest {
             )
 
             assertIs<TasksToBeExecuted>(executor.execute("someTask", this))
-            assertEquals(1, counter.value, "Expected counter to be incremented exactly one time")
+            assertEquals(1, counter.addAndGet(0), "Expected counter to be incremented exactly one time")
         }
     }
 
@@ -176,7 +176,7 @@ class ExecutorCachingTest {
 
         tasks {
             val filePath = TestDirectory.root / "${Random.nextInt()}.txt"
-            FileSystem.SYSTEM.openReadWrite(filePath, mustCreate = true).close()
+            fileSystem.openReadWrite(filePath, mustCreate = true).close()
 
             val task = object : Task("someTask") {
                 var cacheableProperty = File(filePath.toString())
@@ -191,7 +191,7 @@ class ExecutorCachingTest {
             assertIs<TasksToBeExecuted>(executor.execute("someTask", this))
             assertEquals(1, executor.cache.size, "Expected the executor to cache results of single task")
 
-            sleep(1.toUInt())
+            sleep(1000.toUInt())
             writeSthToFile(filePath.toString())
 
             val planResult = assertIs<TasksToBeExecuted>(executor.plan("someTask", this))
@@ -202,7 +202,7 @@ class ExecutorCachingTest {
             )
 
             assertIs<TasksToBeExecuted>(executor.execute("someTask", this))
-            assertEquals(2, counter.value, "Expected counter to be incremented exactly one time")
+            assertEquals(2, counter.addAndGet(0), "Expected counter to be incremented exactly one time")
         }
     }
 }

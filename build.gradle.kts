@@ -10,7 +10,11 @@ allprojects {
     }
 }
 
+
 kotlin {
+
+    jvm()
+
     val hostOs = System.getProperty("os.name")
     val isMingwX64 = hostOs.startsWith("Windows")
     val nativeTarget = when {
@@ -34,10 +38,16 @@ kotlin {
                 implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0-RC")
             }
         }
-
         val commonTest by getting {
             dependencies {
+                implementation(kotlin("test"))
                 implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.4.0")
+            }
+        }
+
+        val jvmMain by getting {
+            dependencies {
+                implementation("com.squareup.okio:okio:3.5.0")
             }
         }
     }

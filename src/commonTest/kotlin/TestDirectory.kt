@@ -1,10 +1,10 @@
-import okio.FileSystem
+import de.hanno.tasky.fileSystem
 import okio.Path
 import okio.Path.Companion.toPath
 
 object TestDirectory {
     init {
-        require(FileSystem.SYSTEM.metadata(root).isDirectory) {
+        require(fileSystem.metadata(root).isDirectory) {
             "Cannot find root test directory $root! Should have been created by the build tool!"
         }
     }
