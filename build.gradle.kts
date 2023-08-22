@@ -34,8 +34,9 @@ kotlin {
     sourceSets {
         val commonMain by getting {
             dependencies {
-                implementation("com.squareup.okio:okio:3.5.0")
-                implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0-RC")
+                api("com.squareup.okio:okio:3.5.0")
+                api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0-RC")
+                api("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
             }
         }
         val commonTest by getting {
@@ -47,7 +48,7 @@ kotlin {
 
         val jvmMain by getting {
             dependencies {
-                implementation("com.squareup.okio:okio:3.5.0")
+                api("com.squareup.okio:okio:3.5.0")
             }
         }
     }

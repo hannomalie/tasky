@@ -4,6 +4,8 @@ import de.hanno.tasky.cache.Cache
 import de.hanno.tasky.cache.InMemoryCache
 import de.hanno.tasky.task.Task
 import de.hanno.tasky.task.TaskContainer
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 class Executor(internal val cache: Cache = InMemoryCache()) {
     fun plan(taskName: String, taskContainer: TaskContainer): Result {
@@ -53,6 +55,31 @@ class Executor(internal val cache: Cache = InMemoryCache()) {
             }
         }
         cache.afterExecution()
+    }
+    data class ExecutionState(
+        var currentTask: Task? = null,
+        val planResult: Result
+    )
+    fun executeAsync(taskName: String, taskContainer: TaskContainer): ExecutionState = plan(taskName, taskContainer).run {
+        val state = ExecutionState(planResult = this)
+
+        GlobalScope.launch {
+            when(this@run) {
+                is NoTasksMatching -> { }
+                is TasksToBeExecuted -> tasks.forEach { task ->
+                    state.currentTask = task
+
+                    task.execute()
+                    task.cached.forEach { cacheable ->
+                        cache.putPropertyValue(task.name, cacheable.key.delegateTo)
+                    }
+                }
+            }
+            state.currentTask = null
+            cache.afterExecution()
+        }
+        println("returning state")
+        state
     }
 }
 
