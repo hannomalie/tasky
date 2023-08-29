@@ -4,8 +4,7 @@ import de.hanno.tasky.cache.Cache
 import de.hanno.tasky.cache.InMemoryCache
 import de.hanno.tasky.task.Task
 import de.hanno.tasky.task.TaskContainer
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 
 class Executor(internal val cache: Cache = InMemoryCache()) {
     fun plan(taskName: String, taskContainer: TaskContainer): Result {
@@ -45,8 +44,8 @@ class Executor(internal val cache: Cache = InMemoryCache()) {
     }
 
     fun execute(taskName: String, taskContainer: TaskContainer): Result = plan(taskName, taskContainer).apply {
-        when(this) {
-            is NoTasksMatching -> { }
+        when (this) {
+            is NoTasksMatching -> {}
             is TasksToBeExecuted -> tasks.forEach { task ->
                 task.execute()
                 task.cached.forEach { cacheable ->
@@ -56,39 +55,57 @@ class Executor(internal val cache: Cache = InMemoryCache()) {
         }
         cache.afterExecution()
     }
-    data class ExecutionState(
-        var currentTask: Task? = null,
-        val planResult: Result
-    )
-    fun executeAsync(taskName: String, taskContainer: TaskContainer): ExecutionState = plan(taskName, taskContainer).run {
-        val state = ExecutionState(planResult = this)
 
-        GlobalScope.launch {
-            when(this@run) {
-                is NoTasksMatching -> { }
-                is TasksToBeExecuted -> tasks.forEach { task ->
-                    state.currentTask = task
+    interface Listener {
+        fun taskStarted(task: Task)
+        fun taskFinished(task: Task)
+    }
+    fun executeAsyncParallel(taskName: String, taskContainer: TaskContainer, listeners: List<Listener> = emptyList()) = plan(taskName, taskContainer).apply {
+        GlobalScope.launch(Dispatchers.IO) {
+            when (this@apply) {
+                is NoTasksMatching -> {}
+                is TasksToBeExecuted -> {
+                    taskContainer.apply {
+                        suspend fun Task.executeAndSpread() {
+                            coroutineScope {
+                                taskContainer.run {
+                                    this@executeAndSpread.directRequirements.map {
+                                        launch {
+                                            it.executeAndSpread()
+                                        }
+                                    }.joinAll()
+                                }
 
-                    task.execute()
-                    task.cached.forEach { cacheable ->
-                        cache.putPropertyValue(task.name, cacheable.key.delegateTo)
+                                listeners.forEach { it.taskStarted(this@executeAndSpread) }
+                                execute()
+                                cached.forEach { cacheable ->
+                                    cache.putPropertyValue(name, cacheable.key.delegateTo)
+                                }
+                                listeners.forEach { it.taskFinished(this@executeAndSpread) }
+                                directIntroductions.map {
+                                    launch {
+                                        it.executeAndSpread()
+                                    }
+                                }.joinAll()
+                            }
+                        }
+
+                        this@apply.tasks.first { it.name == taskName }.executeAndSpread()
                     }
                 }
             }
-            state.currentTask = null
             cache.afterExecution()
         }
         println("returning state")
-        state
     }
 }
 
 sealed interface Result
-data class NoTasksMatching(val name: String): Result
+data class NoTasksMatching(val name: String) : Result
 data class TasksToBeExecuted(
     val tasks: List<Task>,
     val cachedTasks: List<CachedTask>,
-): Result
+) : Result
 
 data class CachedTask(val task: Task, val reasons: List<String>) {
     init {

@@ -41,6 +41,7 @@ class TaskContainer {
         }
     }
 
+    val Task.requiredBy: List<Requirement> get() = _requirements.filter { it.requiredTask == this }
 
     infix fun Task.introduces(other: Task) {
         if(this == other) throw IllegalStateException("Task can not introduce itself!")
@@ -117,7 +118,8 @@ class TaskContainer {
                 val vertex: Task = stack.removeLast()
                 if (!visited.contains(vertex)) {
                     visited.add(vertex)
-                    for (v in _introductions.filter { it.task == vertex }.map { it.introducedTask }) {
+                    val introductionsForTask = _introductions.filter { it.task == vertex }.map { it.introducedTask }
+                    for (v in introductionsForTask) {
                         val dependenciesOfIntroducedTask = traverse(v)
                         stack.addAll(dependenciesOfIntroducedTask)
                         visited.addAll(dependenciesOfIntroducedTask)
@@ -130,6 +132,30 @@ class TaskContainer {
         }
 
         return requirementsAndRoot + introductions
+    }
+
+    enum class EdgeType { Dependency, Finalization }
+    data class Edge(val type: EdgeType, val target: Node)
+    data class Node(val task: Task, val edges: List<Edge>)
+
+    fun newTraverse(root: Task): Node {
+        fun unfold(task: Task): Node =if(task.requirements.isEmpty() && task.introductions.isEmpty()) {
+            Node(task, emptyList())
+        } else {
+            val edges = mutableListOf<Edge>()
+
+            edges.addAll(task.requirements.map {
+                Edge(EdgeType.Dependency, unfold(it))
+            })
+
+            edges.addAll(task.introductions.map {
+                Edge(EdgeType.Finalization, unfold(it))
+            })
+
+            Node(task, edges)
+        }
+
+        return unfold(root)
     }
 
 }
